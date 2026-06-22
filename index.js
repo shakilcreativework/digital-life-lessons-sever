@@ -5,7 +5,7 @@ const express = require("express");
 const dotenv = require("dotenv");
 dotenv.config();
 const cors = require("cors");
-const { MongoClient, ServerApiVersion } = require("mongodb");
+const { MongoClient, ServerApiVersion, ObjectId } = require("mongodb");
 const app = express();
 const port = process.env.PORT || 5000;
 
@@ -65,6 +65,40 @@ async function run() {
       } catch (error) {
         console.error("Database Insert Error:", error);
         res.status(500).json({ success: false, error: "Internal Server Error" });
+      }
+    });
+
+    app.get("/api/lessons/:id", async (req, res) => {
+      try {
+        const { id } = req.params;
+
+        // Verify if string payload is a structurally accurate MongoDB hexadecimal string
+        if (!ObjectId.isValid(id)) {
+          return res.status(400).json({ 
+            success: false, 
+            error: "The provided database identifier string format is invalid." 
+          });
+        }
+
+        // Query document using casted ObjectId conversion layer
+        const lesson = await lessonsCollection.findOne({ _id: new ObjectId(id) });
+
+        // Fallback protection if document does not exist inside cluster index
+        if (!lesson) {
+          return res.status(404).json({ 
+            success: false, 
+            error: "No matching lesson asset document found in database records." 
+          });
+        }
+
+        // Return the clean lesson document payload directly
+        res.json(lesson);
+      } catch (error) {
+        console.error("Express internal lookup execution failure:", error);
+        res.status(500).json({ 
+          success: false, 
+          error: "Internal server processing failure while reading database streams." 
+        });
       }
     });
     // update routes
