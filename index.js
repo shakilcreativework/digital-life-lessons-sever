@@ -153,7 +153,7 @@ async function run() {
       }
     });
 
-    // Favorite / Bookmark Add or Remove Document Synchronization
+    // Favorite / Bookmark Add or Remove Document Synchronization start
     app.post("/api/lessons/:id/favorite", async (req, res) => {
       try {
         const { id } = req.params;
