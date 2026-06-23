@@ -48,26 +48,6 @@ async function run() {
       res.json(lessons);
     });
 
-    // post routes
-    app.post("/api/lessons", async (req, res) => {
-      try {
-        const newLesson = req.body;
-        
-        // Insert payload into MongoDB
-        const result = await lessonsCollection.insertOne(newLesson);
-        
-        // Respond back with success metrics
-        res.status(201).json({
-          success: true,
-          message: "Lesson stored successfully!",
-          insertedId: result.insertedId
-        });
-      } catch (error) {
-        console.error("Database Insert Error:", error);
-        res.status(500).json({ success: false, error: "Internal Server Error" });
-      }
-    });
-
     app.get("/api/lessons/:id", async (req, res) => {
       try {
         const { id } = req.params;
@@ -101,6 +81,28 @@ async function run() {
         });
       }
     });
+
+    // post routes
+    app.post("/api/lessons", async (req, res) => {
+      try {
+        const newLesson = req.body;
+        
+        // Insert payload into MongoDB
+        const result = await lessonsCollection.insertOne(newLesson);
+        
+        // Respond back with success metrics
+        res.status(201).json({
+          success: true,
+          message: "Lesson stored successfully!",
+          insertedId: result.insertedId
+        });
+      } catch (error) {
+        console.error("Database Insert Error:", error);
+        res.status(500).json({ success: false, error: "Internal Server Error" });
+      }
+    });
+
+    
     // update routes
     // delete routes
 
