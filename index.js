@@ -16,7 +16,7 @@ app.use(
     origin: process.env.CLIENT_URL || "http://localhost:3000",
     credentials: true,
     methods: ["GET", "POST", "PUT", "DELETE", "PATCH"],
-  })
+  }),
 );
 app.use(express.json());
 
@@ -56,17 +56,26 @@ async function run() {
         const { id } = req.params;
 
         if (!ObjectId.isValid(id)) {
-          return res.status(400).json({ success: false, error: "Invalid identifier format." });
+          return res
+            .status(400)
+            .json({ success: false, error: "Invalid identifier format." });
         }
 
-        const lesson = await lessonsCollection.findOne({ _id: new ObjectId(id) });
+        const lesson = await lessonsCollection.findOne({
+          _id: new ObjectId(id),
+        });
         if (!lesson) {
-          return res.status(404).json({ success: false, error: "No matching lesson asset document found." });
+          return res
+            .status(404)
+            .json({
+              success: false,
+              error: "No matching lesson asset document found.",
+            });
         }
 
         // STEP 1.2: Compute Total Lessons Created by Author Card
         const totalLessonsCreated = await lessonsCollection.countDocuments({
-          creatorId: lesson.creatorId
+          creatorId: lesson.creatorId,
         });
 
         // STEP 7: Fetch up to 6 Similar/Recommended cards matching Category or Emotional Tone
@@ -75,8 +84,8 @@ async function run() {
             _id: { $ne: new ObjectId(id) },
             $or: [
               { category: lesson.category },
-              { emotionalTone: lesson.emotionalTone }
-            ]
+              { emotionalTone: lesson.emotionalTone },
+            ],
           })
           .limit(6)
           .toArray();
@@ -86,11 +95,16 @@ async function run() {
           success: true,
           lesson,
           authorStats: { totalLessonsCreated },
-          recommendedLessons
+          recommendedLessons,
         });
       } catch (error) {
         console.error("Fetch single lesson breakdown execution error:", error);
-        res.status(500).json({ success: false, error: "Internal server processing failure." });
+        res
+          .status(500)
+          .json({
+            success: false,
+            error: "Internal server processing failure.",
+          });
       }
     });
 
@@ -106,18 +120,20 @@ async function run() {
           isFeatured: false,
           isReviewed: false,
           createdAt: new Date(),
-          updatedAt: new Date()
+          updatedAt: new Date(),
         };
 
         const result = await lessonsCollection.insertOne(newLesson);
         res.status(201).json({
           success: true,
           message: "Lesson stored successfully!",
-          insertedId: result.insertedId
+          insertedId: result.insertedId,
         });
       } catch (error) {
         console.error("Database Insert Error:", error);
-        res.status(500).json({ success: false, error: "Internal Server Error" });
+        res
+          .status(500)
+          .json({ success: false, error: "Internal Server Error" });
       }
     });
 
@@ -132,24 +148,42 @@ async function run() {
         const { userId } = req.body; // In production, replace this with validated JWT session decoding layers
 
         if (!userId) {
-          return res.status(401).json({ success: false, error: "Please log in to like this lesson." });
+          return res
+            .status(401)
+            .json({
+              success: false,
+              error: "Please log in to like this lesson.",
+            });
         }
 
-        const lesson = await lessonsCollection.findOne({ _id: new ObjectId(id) });
-        if (!lesson) return res.status(404).json({ success: false, error: "Lesson not found." });
+        const lesson = await lessonsCollection.findOne({
+          _id: new ObjectId(id),
+        });
+        if (!lesson)
+          return res
+            .status(404)
+            .json({ success: false, error: "Lesson not found." });
 
         const userHasLiked = lesson.likes && lesson.likes.includes(userId);
 
         // Atomic array manipulation block patterns
-        const updateQuery = userHasLiked 
+        const updateQuery = userHasLiked
           ? { $pull: { likes: userId }, $inc: { likesCount: -1 } }
           : { $addToSet: { likes: userId }, $inc: { likesCount: 1 } };
 
-        await lessonsCollection.updateOne({ _id: new ObjectId(id) }, updateQuery);
+        await lessonsCollection.updateOne(
+          { _id: new ObjectId(id) },
+          updateQuery,
+        );
 
         res.json({ success: true, isLiked: !userHasLiked });
       } catch (error) {
-        res.status(500).json({ success: false, error: "Operation execution processing failed." });
+        res
+          .status(500)
+          .json({
+            success: false,
+            error: "Operation execution processing failed.",
+          });
       }
     });
 
@@ -159,18 +193,34 @@ async function run() {
         const { id } = req.params;
         const { userId } = req.body;
 
-        const query = { userId: new ObjectId(userId), lessonId: new ObjectId(id) };
+        const query = {
+          userId: new ObjectId(userId),
+          lessonId: new ObjectId(id),
+        };
         const existingFavorite = await favoritesCollection.findOne(query);
 
         if (existingFavorite) {
           await favoritesCollection.deleteOne(query);
-          return res.json({ success: true, isFavorited: false, message: "Removed from favorites." });
+          return res.json({
+            success: true,
+            isFavorited: false,
+            message: "Removed from favorites.",
+          });
         } else {
-          await favoritesCollection.insertOne({ ...query, savedAt: new Date() });
-          return res.json({ success: true, isFavorited: true, message: "Added to favorites." });
+          await favoritesCollection.insertOne({
+            ...query,
+            savedAt: new Date(),
+          });
+          return res.json({
+            success: true,
+            isFavorited: true,
+            message: "Added to favorites.",
+          });
         }
       } catch (error) {
-        res.status(500).json({ success: false, error: "Favorites sync failure." });
+        res
+          .status(500)
+          .json({ success: false, error: "Favorites sync failure." });
       }
     });
 
@@ -185,13 +235,23 @@ async function run() {
           reporterUserId: new ObjectId(reporterUserId),
           reportedUserEmail,
           reason,
-          timestamp: new Date()
+          timestamp: new Date(),
         };
 
         await reportsCollection.insertOne(reportDocument);
-        res.status(201).json({ success: true, message: "Thank you for your review request flag." });
+        res
+          .status(201)
+          .json({
+            success: true,
+            message: "Thank you for your review request flag.",
+          });
       } catch (error) {
-        res.status(500).json({ success: false, error: "Reporting engine submission failed." });
+        res
+          .status(500)
+          .json({
+            success: false,
+            error: "Reporting engine submission failed.",
+          });
       }
     });
 
@@ -205,14 +265,14 @@ async function run() {
         const { userId, authorName, authorImg, text } = req.body;
 
         const newCommentId = new ObjectId();
-        
+
         // 1. Log structural timestamp record inside the standalone historical ledger
         await commentsCollection.insertOne({
           _id: newCommentId,
           lessonId: new ObjectId(id),
           userId: new ObjectId(userId),
           text,
-          createdAt: new Date()
+          createdAt: new Date(),
         });
 
         // 2. Prepend the UI configuration snapshot onto the parent component block array directly
@@ -222,20 +282,24 @@ async function run() {
           authorName,
           authorImg,
           text,
-          createdAt: new Date().toISOString()
+          createdAt: new Date().toISOString(),
         };
 
         await lessonsCollection.updateOne(
           { _id: new ObjectId(id) },
           {
-            $push: { comments: { $each: [inlineCommentPayload], $position: 0 } },
-            $inc: { CommentsCount: 1 }
-          }
+            $push: {
+              comments: { $each: [inlineCommentPayload], $position: 0 },
+            },
+            $inc: { CommentsCount: 1 },
+          },
         );
 
         res.status(201).json({ success: true, comment: inlineCommentPayload });
       } catch (error) {
-        res.status(500).json({ success: false, error: "Comment insertion failed." });
+        res
+          .status(500)
+          .json({ success: false, error: "Comment insertion failed." });
       }
     });
 
@@ -243,7 +307,9 @@ async function run() {
     // DATABASE CHECK / MONITORING
     // ==========================================
     await client.db("admin").command({ ping: 1 });
-    console.log("Pinged your deployment. You successfully connected to MongoDB!");
+    console.log(
+      "Pinged your deployment. You successfully connected to MongoDB!",
+    );
   } catch (err) {
     console.dir(err);
   }
@@ -257,18 +323,6 @@ app.get("/", (req, res) => {
 app.listen(port, () => {
   console.log(`Server executing active tasks on port ${port}`);
 });
-
-
-
-
-
-
-
-
-
-
-
-
 
 // const dns = require("node:dns");
 // dns.setServers(["8.8.8.8", "8.8.4.4"]);
@@ -326,9 +380,9 @@ app.listen(port, () => {
 
 //         // Verify if string payload is a structurally accurate MongoDB hexadecimal string
 //         if (!ObjectId.isValid(id)) {
-//           return res.status(400).json({ 
-//             success: false, 
-//             error: "The provided database identifier string format is invalid." 
+//           return res.status(400).json({
+//             success: false,
+//             error: "The provided database identifier string format is invalid."
 //           });
 //         }
 
@@ -337,9 +391,9 @@ app.listen(port, () => {
 
 //         // Fallback protection if document does not exist inside cluster index
 //         if (!lesson) {
-//           return res.status(404).json({ 
-//             success: false, 
-//             error: "No matching lesson asset document found in database records." 
+//           return res.status(404).json({
+//             success: false,
+//             error: "No matching lesson asset document found in database records."
 //           });
 //         }
 
@@ -347,9 +401,9 @@ app.listen(port, () => {
 //         res.json(lesson);
 //       } catch (error) {
 //         console.error("Express internal lookup execution failure:", error);
-//         res.status(500).json({ 
-//           success: false, 
-//           error: "Internal server processing failure while reading database streams." 
+//         res.status(500).json({
+//           success: false,
+//           error: "Internal server processing failure while reading database streams."
 //         });
 //       }
 //     });
@@ -358,10 +412,10 @@ app.listen(port, () => {
 //     app.post("/api/lessons", async (req, res) => {
 //       try {
 //         const newLesson = req.body;
-        
+
 //         // Insert payload into MongoDB
 //         const result = await lessonsCollection.insertOne(newLesson);
-        
+
 //         // Respond back with success metrics
 //         res.status(201).json({
 //           success: true,
@@ -374,7 +428,6 @@ app.listen(port, () => {
 //       }
 //     });
 
-    
 //     // update routes
 //     // delete routes
 
