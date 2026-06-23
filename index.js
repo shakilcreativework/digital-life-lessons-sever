@@ -256,7 +256,7 @@ async function run() {
     });
 
     // ==========================================
-    // 3. COMMENT FEED ENGINE PROCESSING ROUTE (STEP 6)
+    // 3. Done: COMMENT FEED ENGINE PROCESSING ROUTE (STEP 6)
     // ==========================================
 
     app.post("/api/lessons/:id/comment", async (req, res) => {
