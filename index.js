@@ -125,7 +125,7 @@ async function run() {
     // 2. INTERACTION OPERATIONS BUTTON ROUTING (STEP 5)
     // ==========================================
 
-    // Atomic Like / Unlike Toggle Operation Backend Handler
+    // Done: Atomic Like / Unlike Toggle Operation Backend Handler
     app.patch("/api/lessons/:id/like", async (req, res) => {
       try {
         const { id } = req.params;
