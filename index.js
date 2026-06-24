@@ -113,7 +113,8 @@ async function run() {
 
     // Get Reports
     app.get("/api/lessonsReports", async(req, res) => {
-      
+      const lessonsReports = await reportsCollection.find().toArray();
+      res.json(lessonsReports);
     });
 
     // Create a new lesson document entry
