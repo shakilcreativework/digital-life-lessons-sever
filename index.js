@@ -65,12 +65,10 @@ async function run() {
           _id: new ObjectId(id),
         });
         if (!lesson) {
-          return res
-            .status(404)
-            .json({
-              success: false,
-              error: "No matching lesson asset document found.",
-            });
+          return res.status(404).json({
+            success: false,
+            error: "No matching lesson asset document found.",
+          });
         }
 
         // STEP 1.2: Compute Total Lessons Created by Author Card
@@ -99,12 +97,10 @@ async function run() {
         });
       } catch (error) {
         console.error("Fetch single lesson breakdown execution error:", error);
-        res
-          .status(500)
-          .json({
-            success: false,
-            error: "Internal server processing failure.",
-          });
+        res.status(500).json({
+          success: false,
+          error: "Internal server processing failure.",
+        });
       }
     });
 
@@ -148,12 +144,10 @@ async function run() {
         const { userId } = req.body; // In production, replace this with validated JWT session decoding layers
 
         if (!userId) {
-          return res
-            .status(401)
-            .json({
-              success: false,
-              error: "Please log in to like this lesson.",
-            });
+          return res.status(401).json({
+            success: false,
+            error: "Please log in to like this lesson.",
+          });
         }
 
         const lesson = await lessonsCollection.findOne({
@@ -178,12 +172,10 @@ async function run() {
 
         res.json({ success: true, isLiked: !userHasLiked });
       } catch (error) {
-        res
-          .status(500)
-          .json({
-            success: false,
-            error: "Operation execution processing failed.",
-          });
+        res.status(500).json({
+          success: false,
+          error: "Operation execution processing failed.",
+        });
       }
     });
 
@@ -228,30 +220,30 @@ async function run() {
     app.post("/api/lessons/:id/report", async (req, res) => {
       try {
         const { id } = req.params;
-        const { reporterUserId, reportedUserEmail, reason } = req.body;
+        // 🟢 Destructure both 'reason' and 'details' fields coming from the body payload
+        const { reporterUserId, reportedUserEmail, reason, details } = req.body;
 
         const reportDocument = {
           lessonId: new ObjectId(id),
           reporterUserId: new ObjectId(reporterUserId),
           reportedUserEmail,
           reason,
+          details: details || "",
           timestamp: new Date(),
         };
 
         await reportsCollection.insertOne(reportDocument);
-        res
-          .status(201)
-          .json({
-            success: true,
-            message: "Thank you for your review request flag.",
-          });
+
+        res.status(201).json({
+          success: true,
+          message: "Thank you for your review request flag.",
+        });
       } catch (error) {
-        res
-          .status(500)
-          .json({
-            success: false,
-            error: "Reporting engine submission failed.",
-          });
+        console.error("Reporting engine sync error:", error);
+        res.status(500).json({
+          success: false,
+          error: "Reporting engine submission failed.",
+        });
       }
     });
 
