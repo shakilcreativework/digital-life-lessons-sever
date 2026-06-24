@@ -111,6 +111,11 @@ async function run() {
       res.json(users);
     });
 
+    // Get Reports
+    app.get("/api/lessonsReports", async(req, res) => {
+      
+    });
+
     // Create a new lesson document entry
     app.post("/api/lessons", async (req, res) => {
       try {
