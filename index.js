@@ -39,6 +39,7 @@ async function run() {
     const reportsCollection = db.collection("lessonsReports");
     const favoritesCollection = db.collection("favorites");
     const commentsCollection = db.collection("comments");
+    const usersCollection = db.collection("user");
 
     // ==========================================
     // 1. LESSON DATA RETRIEVAL (WITH AUTHOR STATS & SIMILAR LESSONS)
@@ -102,6 +103,12 @@ async function run() {
           error: "Internal server processing failure.",
         });
       }
+    });
+
+    // Get users
+    app.get("/api/users", async(req, res) => {
+      const users = await usersCollection.find().toArray();
+      res.json(users);
     });
 
     // Create a new lesson document entry
