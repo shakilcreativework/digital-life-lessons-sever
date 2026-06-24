@@ -179,40 +179,45 @@ async function run() {
       }
     });
 
-    // Favorite / Bookmark Add or Remove Document Synchronization start
-    app.post("/api/lessons/:id/favorite", async (req, res) => {
+    // Done: Atomic Favorite / Unfavorite Toggle Operation Backend Handler
+    app.patch("/api/lessons/:id/favorite", async (req, res) => {
       try {
         const { id } = req.params;
-        const { userId } = req.body;
+        const { userId } = req.body; // In production, replace this with validated JWT session decoding layers
 
-        const query = {
-          userId: new ObjectId(userId),
-          lessonId: new ObjectId(id),
-        };
-        const existingFavorite = await favoritesCollection.findOne(query);
-
-        if (existingFavorite) {
-          await favoritesCollection.deleteOne(query);
-          return res.json({
-            success: true,
-            isFavorited: false,
-            message: "Removed from favorites.",
-          });
-        } else {
-          await favoritesCollection.insertOne({
-            ...query,
-            savedAt: new Date(),
-          });
-          return res.json({
-            success: true,
-            isFavorited: true,
-            message: "Added to favorites.",
+        if (!userId) {
+          return res.status(401).json({
+            success: false,
+            error: "Please log in to favorite this lesson.",
           });
         }
+
+        const lesson = await lessonsCollection.findOne({
+          _id: new ObjectId(id),
+        });
+        if (!lesson)
+          return res
+            .status(404)
+            .json({ success: false, error: "Lesson not found." });
+
+        const userHasbookmarked = lesson.bookmarkedBy && lesson.bookmarkedBy.includes(userId);
+
+        // Atomic array manipulation block patterns
+        const updateQuery = userHasbookmarked
+          ? { $pull: { bookmarkedBy: userId }, $inc: { bookmarkedByCount: -1 } }
+          : { $addToSet: { bookmarkedBy: userId }, $inc: { bookmarkedByCount: 1 } };
+
+        await lessonsCollection.updateOne(
+          { _id: new ObjectId(id) },
+          updateQuery,
+        );
+
+        res.json({ success: true, isBookmarked: !userHasbookmarked });
       } catch (error) {
-        res
-          .status(500)
-          .json({ success: false, error: "Favorites sync failure." });
+        res.status(500).json({
+          success: false,
+          error: "Operation execution processing failed.",
+        });
       }
     });
 
