@@ -530,6 +530,31 @@ async function run() {
       }
     });
 
+    /**
+     * PATCH Route: Ignore / Approve Content Reports
+     * Endpoint: /api/admin/lessons/:id/ignore-reports
+     * Description: Keeps the target lesson live and clears all linked report entries from the database.
+     */
+    app.patch("/api/admin/lessons/:id/ignore-reports", async (req, res) => {
+      try {
+        const lessonId = req.params.id;
+
+        // Remove all individual report log filings matching this lesson identification string
+        await db
+          .collection("lessonsReports")
+          .deleteMany({ lessonId: lessonId });
+
+        res.json({
+          success: true,
+          message:
+            "All reported content logs dropped. Lesson marked as secure.",
+        });
+      } catch (err) {
+        console.error("❌ Failed to ignore lesson content reports:", err);
+        res.status(500).json({ error: "Internal Server Error" });
+      }
+    });
+
     // DELETE Route: Permanently purge an account from platform records
     app.delete("/api/users/:id", async (req, res) => {
       try {
