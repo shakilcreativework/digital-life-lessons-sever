@@ -106,11 +106,6 @@ async function run() {
     });
 
     // Get users
-    // app.get("/api/users", async(req, res) => {
-    //   const users = await usersCollection.find().toArray();
-    //   res.json(users);
-    // });
-
     app.get("/api/users", async (req, res) => {
       try {
         const users = await usersCollection.find().toArray();
