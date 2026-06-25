@@ -479,6 +479,35 @@ async function run() {
       }
     });
 
+    // lessons delete by admin
+    app.delete("/api/admin/lessons/:id", async (req, res) => {
+      try {
+        const lessonId = req.params.id;
+
+        const result = await lessonsCollection.deleteOne({
+          _id: new ObjectId(lessonId),
+        });
+
+        if (result.deletedCount === 0) {
+          return res
+            .status(404)
+            .json({ error: "Target lesson database entry not found." });
+        }
+
+        res.json({
+          success: true,
+          message:
+            "Inappropriate lesson permanently purged from systems ledger.",
+        });
+      } catch (err) {
+        console.error(
+          "❌ Failed to execute target lesson deletion sequence:",
+          err,
+        );
+        res.status(500).json({ error: "Internal Server Error" });
+      }
+    });
+
     // ==========================================
     // DATABASE CHECK / MONITORING
     // ==========================================
