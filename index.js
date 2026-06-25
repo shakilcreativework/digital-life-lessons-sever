@@ -751,6 +751,47 @@ async function run() {
       }
     });
 
+    // delete lessons by users
+    app.delete("/api/lessons/:id", async (req, res) => {
+      try {
+        const lessonId = req.params.id;
+
+        if (!ObjectId.isValid(lessonId)) {
+          return res
+            .status(400)
+            .json({ error: "Invalid structural Lesson ID format." });
+        }
+
+        // 1. Delete the primary lesson entry document
+        const lessonDeleteResult = await db
+          .collection("lessons")
+          .deleteOne({ _id: new ObjectId(lessonId) });
+
+        if (lessonDeleteResult.deletedCount === 0) {
+          return res
+            .status(404)
+            .json({ error: "Target lesson record not found." });
+        }
+
+        // 2. Cascade cleanup: delete any associated reports from the moderation log collection
+        await db
+          .collection("lessonsReports")
+          .deleteMany({ lessonId: lessonId });
+
+        res.json({
+          success: true,
+          message:
+            "Lesson entry and associated infraction logs purged successfully.",
+        });
+      } catch (err) {
+        console.error(
+          "❌ Error executing absolute collection deletion sequence:",
+          err,
+        );
+        res.status(500).json({ error: "Internal Server Error" });
+      }
+    });
+
     // ==========================================
     // DATABASE CHECK / MONITORING
     // ==========================================
