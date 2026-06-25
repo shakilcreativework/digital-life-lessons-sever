@@ -51,6 +51,60 @@ async function run() {
       res.json(lessons);
     });
 
+    // Get user lessons
+    app.get("/api/creator/lessons/:userId", async (req, res) => {
+      try {
+        const { userId } = req.params;
+
+        if (!userId) {
+          return res
+            .status(400)
+            .json({ error: "Missing required Creator/User ID parameter." });
+        }
+
+        // Query lessons collection matching your schema's 'creatorId' key field
+        const rawLessons = await db
+          .collection("lessons")
+          .find({ creatorId: userId })
+          .sort({ createdAt: -1 }) // Show latest entries first
+          .toArray();
+
+        // Transform and map the fields cleanly to provide reliable counts for your dashboard UI
+        const processedLessons = rawLessons.map((lesson) => {
+          // Safely check array lengths, falling back to the provided schema counts if arrays are missing
+          const reactionsCount = Array.isArray(lesson.likes)
+            ? lesson.likes.length
+            : lesson.likesCount || 0;
+
+          const savesCount = Array.isArray(lesson.bookmarkedBy)
+            ? lesson.bookmarkedBy.length
+            : lesson.bookmarkedByCount || 0;
+
+          return {
+            _id: lesson._id,
+            title: lesson.title,
+            slug: lesson.slug,
+            category: lesson.category || "General",
+            visibility: lesson.visibility || "Public",
+            accessLevel: lesson.accessLevel || "Free",
+            createdAt: lesson.createdAt,
+            reactionsCount: reactionsCount,
+            savesCount: savesCount,
+            commentsCount:
+              lesson.CommentsCount ||
+              (lesson.comments ? lesson.comments.length : 0),
+            isFlagged: lesson.isFlagged || false,
+          };
+        });
+
+        res.json(processedLessons);
+      } catch (err) {
+        console.error("❌ Error fetching creator lessons by creatorId:", err);
+        res.status(500).json({ error: "Internal Server Error" });
+      }
+    });
+
+    // get lessons by admin
     app.get("/api/admin/lessons", async (req, res) => {
       const lessons = await lessonsCollection.find().toArray();
       res.json(lessons);
