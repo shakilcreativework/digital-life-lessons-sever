@@ -51,6 +51,11 @@ async function run() {
       res.json(lessons);
     });
 
+    app.get("/api/admin/lessons", async (req, res) => {
+      const lessons = await lessonsCollection.find().toArray();
+      res.json(lessons);
+    });
+
     // Get a specific lesson detail page payload
     app.get("/api/lessons/:id", async (req, res) => {
       try {
