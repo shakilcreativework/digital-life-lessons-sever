@@ -178,6 +178,24 @@ async function run() {
       }
     });
 
+    app.get("/api/favorites", async (req, res) => {
+      try {
+        const { userId } = req.query;
+        // Find all lessons where this userId is in the bookmarkedBy array
+        const favorites = await lessonsCollection
+          .find({
+            bookmarkedBy: userId,
+          })
+          .toArray();
+
+        res.json({ success: true, data: favorites });
+      } catch (error) {
+        res
+          .status(500)
+          .json({ success: false, error: "Failed to fetch favorites." });
+      }
+    });
+
     // Get users
     app.get("/api/users", async (req, res) => {
       try {
