@@ -162,6 +162,82 @@ async function run() {
       res.json(lessonsReports);
     });
 
+    // Get reported lessons
+    app.get("/api/admin/reported-lessons-summary", async (req, res) => {
+      try {
+        // Aggregation pipeline to join reports with their respective lesson fields
+        const aggregatedReports = await db
+          .collection("lessonsReports")
+          .aggregate([
+            {
+              // 1. Group records by unique lessonId to collect individual reports under one lesson
+              $group: {
+                _id: "$lessonId",
+                reportsCount: { $sum: 1 },
+                allReports: {
+                  $push: {
+                    reportId: "$_id",
+                    reporterUserId: "$reporterUserId",
+                    reportedUserEmail: "$reportedUserEmail",
+                    reason: "$reason",
+                    details: "$details",
+                    timestamp: "$timestamp",
+                  },
+                },
+              },
+            },
+            {
+              // 2. Convert string lessonId to a valid ObjectId for cross-collection lookup matching
+              $addFields: {
+                lessonObjectId: {
+                  $convert: {
+                    input: "$_id",
+                    to: "objectId",
+                    onError: null, // Gracefully handles malformed IDs
+                    onNull: null,
+                  },
+                },
+              },
+            },
+            {
+              // 3. Join with lessons collection to populate descriptive details
+              $lookup: {
+                from: "lessons", // Name of your lessons collection in MongoDB
+                localField: "lessonObjectId",
+                foreignField: "_id",
+                as: "lessonDetails",
+              },
+            },
+            {
+              // 4. Flatten the lookup array result
+              $unwind: {
+                path: "$lessonDetails",
+                preserveNullAndEmptyArrays: false, // Filters out reports for lessons that no longer exist
+              },
+            },
+            {
+              // 5. Project the clean, optimized schema back to the Next.js frontend
+              $project: {
+                _id: "$lessonDetails._id", // Set the principal item id to the lesson id
+                title: "$lessonDetails.title",
+                category: "$lessonDetails.category",
+                reportsCount: 1,
+                reports: "$allReports",
+              },
+            },
+          ])
+          .toArray();
+
+        res.json(aggregatedReports);
+      } catch (err) {
+        console.error(
+          "❌ Aggregation pipeline failed for reported lessons summary:",
+          err,
+        );
+        res.status(500).json({ error: "Internal Server Error" });
+      }
+    });
+
     // Create a new lesson document entry
     app.post("/api/lessons", async (req, res) => {
       try {
