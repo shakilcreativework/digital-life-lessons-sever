@@ -374,6 +374,40 @@ async function run() {
       }
     });
 
+    app.patch("/api/admin/lessons/:id/featured", async (req, res) => {
+      try {
+        const lessonId = req.params.id;
+        const { isFeatured } = req.body; // Expects a boolean flag value
+
+        if (typeof isFeatured !== "boolean") {
+          return res
+            .status(400)
+            .json({
+              error: "Invalid payload type. 'isFeatured' must be a boolean.",
+            });
+        }
+
+        const result = await lessonsCollection.updateOne(
+          { _id: new ObjectId(lessonId) },
+          { $set: { isFeatured: isFeatured } },
+        );
+
+        if (result.matchedCount === 0) {
+          return res
+            .status(404)
+            .json({ error: "Target lesson database entry not found." });
+        }
+
+        res.json({
+          success: true,
+          message: `Lesson successfully ${isFeatured ? "promoted to featured status" : "removed from featured selection"}.`,
+        });
+      } catch (err) {
+        console.error("❌ Failed to update lesson featured status:", err);
+        res.status(500).json({ error: "Internal Server Error" });
+      }
+    });
+
     // DELETE Route: Permanently purge an account from platform records
     app.delete("/api/users/:id", async (req, res) => {
       try {
