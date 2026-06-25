@@ -397,6 +397,76 @@ async function run() {
       }
     });
 
+    // PUT /api/lessons/:id
+    app.put("/api/lessons/:id", async (req, res) => {
+      try {
+        const { id } = req.params;
+
+        // 1. Validate if the string can be parsed into a 24-character hex structure safely
+        if (!ObjectId.isValid(id)) {
+          return res.status(400).json({
+            success: false,
+            error:
+              "Provided tracking asset token configuration is not a valid Hex ObjectId.",
+          });
+        }
+
+        // 2. Extract fields from the JSON payload sent by handleFormSubmission
+        const {
+          title,
+          slug,
+          description,
+          category,
+          emotionalTone,
+          visibility,
+          accessLevel,
+          image,
+        } = req.body;
+
+        // 3. Build the descriptive modification update document object
+        const updateDoc = {
+          $set: {
+            title,
+            slug,
+            description,
+            category,
+            emotionalTone,
+            visibility,
+            accessLevel,
+            image,
+            updatedAt: new Date(), // Appends tracking trace parameter
+          },
+        };
+
+        // 4. Fire execution command using native driver updateOne block
+        const result = await lessonsCollection.updateOne(
+          { _id: new ObjectId(id) },
+          updateDoc,
+        );
+
+        // 5. Check if document trace target matched successfully
+        if (result.matchedCount === 0) {
+          return res.status(404).json({
+            success: false,
+            error: "No matching lesson asset document found to update.",
+          });
+        }
+
+        // 6. Return a successful true boolean back to frontend router trigger points
+        res.status(200).json({
+          success: true,
+          message: "Lesson details successfully saved to repository clusters.",
+        });
+      } catch (error) {
+        console.error("PUT modification handler processing error:", error);
+        res.status(500).json({
+          success: false,
+          error:
+            "Internal server processing failure while executing data save.",
+        });
+      }
+    });
+
     // Handle both Promotion and Demotion
     app.patch("/api/users/:id/role", async (req, res) => {
       try {
