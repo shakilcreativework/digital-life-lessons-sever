@@ -106,13 +106,44 @@ async function run() {
     });
 
     // Get users
-    app.get("/api/users", async(req, res) => {
-      const users = await usersCollection.find().toArray();
-      res.json(users);
+    // app.get("/api/users", async(req, res) => {
+    //   const users = await usersCollection.find().toArray();
+    //   res.json(users);
+    // });
+
+    app.get("/api/users", async (req, res) => {
+      try {
+        const users = await usersCollection.find().toArray();
+
+        const usersWithStats = await Promise.all(
+          users.map(async (user) => {
+            const userIdString = user._id.toString();
+
+            const lessonCount = await lessonsCollection.countDocuments({
+              creatorId: userIdString,
+            });
+
+            return {
+              _id: user._id,
+              name: user.name || "User Profile",
+              email: user.email,
+              image: user.image,
+              role: user.role || "user",
+              isPremium: user.isPremium || false,
+              totalLessons: lessonCount, 
+            };
+          }),
+        );
+
+        res.json(usersWithStats);
+      } catch (err) {
+        console.error("❌ Failed to resolve users statistics payload:", err);
+        res.status(500).json({ error: "Internal Server Error" });
+      }
     });
 
     // Get Reports
-    app.get("/api/lessonsReports", async(req, res) => {
+    app.get("/api/lessonsReports", async (req, res) => {
       const lessonsReports = await reportsCollection.find().toArray();
       res.json(lessonsReports);
     });
@@ -213,12 +244,16 @@ async function run() {
             .status(404)
             .json({ success: false, error: "Lesson not found." });
 
-        const userHasbookmarked = lesson.bookmarkedBy && lesson.bookmarkedBy.includes(userId);
+        const userHasbookmarked =
+          lesson.bookmarkedBy && lesson.bookmarkedBy.includes(userId);
 
         // Atomic array manipulation block patterns
         const updateQuery = userHasbookmarked
           ? { $pull: { bookmarkedBy: userId }, $inc: { bookmarkedByCount: -1 } }
-          : { $addToSet: { bookmarkedBy: userId }, $inc: { bookmarkedByCount: 1 } };
+          : {
+              $addToSet: { bookmarkedBy: userId },
+              $inc: { bookmarkedByCount: 1 },
+            };
 
         await lessonsCollection.updateOne(
           { _id: new ObjectId(id) },
