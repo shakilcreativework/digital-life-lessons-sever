@@ -339,6 +339,27 @@ async function run() {
       }
     });
 
+    app.get("/api/featured-lessons", async (req, res) => {
+      try {
+        const featuredLessons = await lessonsCollection
+          .find({ isFeatured: true }) // Explicit filter
+          .sort({ createdAt: -1 }) // Newest featured first
+          .toArray();
+
+        res.json({
+          success: true,
+          count: featuredLessons.length,
+          data: featuredLessons,
+        });
+      } catch (error) {
+        console.error("❌ Failed to fetch featured-lessons:", error);
+        res.status(500).json({
+          success: false,
+          error: "Failed to retrieve featured lesson collection.",
+        });
+      }
+    });
+
     // Content Violation Reporting Pipeline Data Logging Handler
     app.post("/api/lessons/:id/report", async (req, res) => {
       try {
