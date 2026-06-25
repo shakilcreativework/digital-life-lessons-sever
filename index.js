@@ -125,7 +125,7 @@ async function run() {
               image: user.image,
               role: user.role || "user",
               isPremium: user.isPremium || false,
-              totalLessons: lessonCount, 
+              totalLessons: lessonCount,
             };
           }),
         );
@@ -169,6 +169,39 @@ async function run() {
         res
           .status(500)
           .json({ success: false, error: "Internal Server Error" });
+      }
+    });
+
+    // Handle both Promotion and Demotion
+    app.patch("/api/users/:id/role", async (req, res) => {
+      try {
+        const userId = req.params.id;
+        const { role } = req.body;
+        
+        if (role !== "admin" && role !== "user") {
+          return res
+            .status(400)
+            .json({ error: "Invalid role type requested." });
+        }
+
+        const result = await usersCollection.updateOne(
+          { _id: new ObjectId(userId) },
+          { $set: { role: role } },
+        );
+
+        if (result.matchedCount === 0) {
+          return res
+            .status(404)
+            .json({ error: "Target platform account not found." });
+        }
+
+        res.json({
+          success: true,
+          message: `Account successfully changed to ${role}.`,
+        });
+      } catch (err) {
+        console.error("❌ Failed to update user access role:", err);
+        res.status(500).json({ error: "Internal Server Error" });
       }
     });
 
