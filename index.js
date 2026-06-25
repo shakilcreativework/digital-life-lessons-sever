@@ -388,6 +388,7 @@ async function run() {
       }
     });
 
+    // featured by admin
     app.patch("/api/admin/lessons/:id/featured", async (req, res) => {
       try {
         const lessonId = req.params.id;
@@ -416,6 +417,39 @@ async function run() {
         });
       } catch (err) {
         console.error("❌ Failed to update lesson featured status:", err);
+        res.status(500).json({ error: "Internal Server Error" });
+      }
+    });
+
+    // reviewed by admin
+    app.patch("/api/admin/lessons/:id/reviewed", async (req, res) => {
+      try {
+        const lessonId = req.params.id;
+
+        const result = await lessonsCollection.updateOne(
+          { _id: new ObjectId(lessonId) },
+          {
+            $set: {
+              isReviewed: true,
+              isFlagged: false,
+              reportsCount: 0,
+              reports: [],
+            },
+          },
+        );
+
+        if (result.matchedCount === 0) {
+          return res
+            .status(404)
+            .json({ error: "Target lesson database entry not found." });
+        }
+
+        res.json({
+          success: true,
+          message: "Lesson content approved and cleared from moderation logs.",
+        });
+      } catch (err) {
+        console.error("❌ Failed to mark lesson content as reviewed:", err);
         res.status(500).json({ error: "Internal Server Error" });
       }
     });
