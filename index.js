@@ -253,7 +253,7 @@ async function run() {
       try {
         const userId = req.params.id;
         const { role } = req.body;
-        
+
         if (role !== "admin" && role !== "user") {
           return res
             .status(400)
@@ -366,6 +366,31 @@ async function run() {
           success: false,
           error: "Operation execution processing failed.",
         });
+      }
+    });
+
+    // DELETE Route: Permanently purge an account from platform records
+    app.delete("/api/users/:id", async (req, res) => {
+      try {
+        const userId = req.params.id;
+
+        const result = await usersCollection.deleteOne({
+          _id: new ObjectId(userId),
+        });
+
+        if (result.deletedCount === 0) {
+          return res
+            .status(404)
+            .json({ error: "Target platform account not found." });
+        }
+
+        res.json({
+          success: true,
+          message: "Account permanently removed from platform records.",
+        });
+      } catch (err) {
+        console.error("❌ Failed to destroy target user record:", err);
+        res.status(500).json({ error: "Internal Server Error" });
       }
     });
 
