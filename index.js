@@ -172,6 +172,82 @@ async function run() {
       }
     });
 
+    // Content Violation Reporting Pipeline Data Logging Handler
+    app.post("/api/lessons/:id/report", async (req, res) => {
+      try {
+        const { id } = req.params;
+        // 🟢 Destructure both 'reason' and 'details' fields coming from the body payload
+        const { reporterUserId, reportedUserEmail, reason, details } = req.body;
+
+        const reportDocument = {
+          lessonId: new ObjectId(id),
+          reporterUserId: new ObjectId(reporterUserId),
+          reportedUserEmail,
+          reason,
+          details: details || "",
+          timestamp: new Date(),
+        };
+
+        await reportsCollection.insertOne(reportDocument);
+
+        res.status(201).json({
+          success: true,
+          message: "Thank you for your review request flag.",
+        });
+      } catch (error) {
+        console.error("Reporting engine sync error:", error);
+        res.status(500).json({
+          success: false,
+          error: "Reporting engine submission failed.",
+        });
+      }
+    });
+
+    // Comments api
+    app.post("/api/lessons/:id/comment", async (req, res) => {
+      try {
+        const { id } = req.params;
+        const { userId, authorName, authorImg, text } = req.body;
+
+        const newCommentId = new ObjectId();
+
+        // 1. Log structural timestamp record inside the standalone historical ledger
+        await commentsCollection.insertOne({
+          _id: newCommentId,
+          lessonId: new ObjectId(id),
+          userId: new ObjectId(userId),
+          text,
+          createdAt: new Date(),
+        });
+
+        // 2. Prepend the UI configuration snapshot onto the parent component block array directly
+        const inlineCommentPayload = {
+          _id: newCommentId.toString(),
+          userId,
+          authorName,
+          authorImg,
+          text,
+          createdAt: new Date().toISOString(),
+        };
+
+        await lessonsCollection.updateOne(
+          { _id: new ObjectId(id) },
+          {
+            $push: {
+              comments: { $each: [inlineCommentPayload], $position: 0 },
+            },
+            $inc: { CommentsCount: 1 },
+          },
+        );
+
+        res.status(201).json({ success: true, comment: inlineCommentPayload });
+      } catch (error) {
+        res
+          .status(500)
+          .json({ success: false, error: "Comment insertion failed." });
+      }
+    });
+
     // Handle both Promotion and Demotion
     app.patch("/api/users/:id/role", async (req, res) => {
       try {
@@ -204,10 +280,6 @@ async function run() {
         res.status(500).json({ error: "Internal Server Error" });
       }
     });
-
-    // ==========================================
-    // 2. INTERACTION OPERATIONS BUTTON ROUTING (STEP 5)
-    // ==========================================
 
     // Done: Atomic Like / Unlike Toggle Operation Backend Handler
     app.patch("/api/lessons/:id/like", async (req, res) => {
@@ -294,85 +366,6 @@ async function run() {
           success: false,
           error: "Operation execution processing failed.",
         });
-      }
-    });
-
-    // Content Violation Reporting Pipeline Data Logging Handler
-    app.post("/api/lessons/:id/report", async (req, res) => {
-      try {
-        const { id } = req.params;
-        // 🟢 Destructure both 'reason' and 'details' fields coming from the body payload
-        const { reporterUserId, reportedUserEmail, reason, details } = req.body;
-
-        const reportDocument = {
-          lessonId: new ObjectId(id),
-          reporterUserId: new ObjectId(reporterUserId),
-          reportedUserEmail,
-          reason,
-          details: details || "",
-          timestamp: new Date(),
-        };
-
-        await reportsCollection.insertOne(reportDocument);
-
-        res.status(201).json({
-          success: true,
-          message: "Thank you for your review request flag.",
-        });
-      } catch (error) {
-        console.error("Reporting engine sync error:", error);
-        res.status(500).json({
-          success: false,
-          error: "Reporting engine submission failed.",
-        });
-      }
-    });
-
-    // ==========================================
-    // 3. Done: COMMENT FEED ENGINE PROCESSING ROUTE (STEP 6)
-    // ==========================================
-
-    app.post("/api/lessons/:id/comment", async (req, res) => {
-      try {
-        const { id } = req.params;
-        const { userId, authorName, authorImg, text } = req.body;
-
-        const newCommentId = new ObjectId();
-
-        // 1. Log structural timestamp record inside the standalone historical ledger
-        await commentsCollection.insertOne({
-          _id: newCommentId,
-          lessonId: new ObjectId(id),
-          userId: new ObjectId(userId),
-          text,
-          createdAt: new Date(),
-        });
-
-        // 2. Prepend the UI configuration snapshot onto the parent component block array directly
-        const inlineCommentPayload = {
-          _id: newCommentId.toString(),
-          userId,
-          authorName,
-          authorImg,
-          text,
-          createdAt: new Date().toISOString(),
-        };
-
-        await lessonsCollection.updateOne(
-          { _id: new ObjectId(id) },
-          {
-            $push: {
-              comments: { $each: [inlineCommentPayload], $position: 0 },
-            },
-            $inc: { CommentsCount: 1 },
-          },
-        );
-
-        res.status(201).json({ success: true, comment: inlineCommentPayload });
-      } catch (error) {
-        res
-          .status(500)
-          .json({ success: false, error: "Comment insertion failed." });
       }
     });
 
