@@ -584,6 +584,94 @@ async function run() {
       }
     });
 
+    // User lessons visibility toggle
+    app.patch("/api/lessons/:id/visibility", async (req, res) => {
+      try {
+        const lessonId = req.params.id;
+        const { visibility } = req.body; // Expects "Public" or "Private"
+
+        if (!ObjectId.isValid(lessonId)) {
+          return res
+            .status(400)
+            .json({ error: "Invalid dynamic Lesson ID format." });
+        }
+
+        if (!["Public", "Private"].includes(visibility)) {
+          return res
+            .status(400)
+            .json({ error: "Invalid visibility value specified." });
+        }
+
+        const result = await db.collection("lessons").updateOne(
+          { _id: new ObjectId(lessonId) },
+          {
+            $set: {
+              visibility: visibility,
+              isPublic: visibility === "Public",
+            },
+          },
+        );
+
+        if (result.matchedCount === 0) {
+          return res
+            .status(404)
+            .json({ error: "Target lesson entry not found." });
+        }
+
+        res.json({
+          success: true,
+          message: `Visibility updated to ${visibility} successfully.`,
+        });
+      } catch (err) {
+        console.error("❌ Failed to update lesson visibility parameters:", err);
+        res.status(500).json({ error: "Internal Server Error" });
+      }
+    });
+
+    // Toggle Lesson Access Level (Free / Premium)
+    app.patch("/api/lessons/:id/access-level", async (req, res) => {
+      try {
+        const lessonId = req.params.id;
+        const { accessLevel } = req.body; // Expects "Free" or "Premium"
+
+        if (!ObjectId.isValid(lessonId)) {
+          return res
+            .status(400)
+            .json({ error: "Invalid dynamic Lesson ID format." });
+        }
+
+        if (!["Free", "Premium"].includes(accessLevel)) {
+          return res
+            .status(400)
+            .json({ error: "Invalid access level value specified." });
+        }
+
+        const result = await db.collection("lessons").updateOne(
+          { _id: new ObjectId(lessonId) },
+          {
+            $set: {
+              accessLevel: accessLevel,
+              isPremium: accessLevel === "Premium",
+            },
+          },
+        );
+
+        if (result.matchedCount === 0) {
+          return res
+            .status(404)
+            .json({ error: "Target lesson entry not found." });
+        }
+
+        res.json({
+          success: true,
+          message: `Access tier modified to ${accessLevel} successfully.`,
+        });
+      } catch (err) {
+        console.error("❌ Failed to modify lesson access parameters:", err);
+        res.status(500).json({ error: "Internal Server Error" });
+      }
+    });
+
     /**
      * PATCH Route: Ignore / Approve Content Reports
      * Endpoint: /api/admin/lessons/:id/ignore-reports
