@@ -56,6 +56,21 @@ async function run() {
       res.json(lessons);
     });
 
+    // GET Route: Fetch only lessons marked as featured for the homepage
+    app.get("/api/lessons/featured", async (req, res) => {
+      try {
+        // Query MongoDB for documents where isFeatured is explicitly true
+        const featuredLessons = await lessonsCollection
+          .find({ isFeatured: true })
+          .toArray();
+
+        res.json(featuredLessons);
+      } catch (err) {
+        console.error("❌ Failed to fetch featured lessons stream:", err);
+        res.status(500).json({ error: "Internal Server Error" });
+      }
+    });
+
     // Get a specific lesson detail page payload
     app.get("/api/lessons/:id", async (req, res) => {
       try {
@@ -380,11 +395,9 @@ async function run() {
         const { isFeatured } = req.body; // Expects a boolean flag value
 
         if (typeof isFeatured !== "boolean") {
-          return res
-            .status(400)
-            .json({
-              error: "Invalid payload type. 'isFeatured' must be a boolean.",
-            });
+          return res.status(400).json({
+            error: "Invalid payload type. 'isFeatured' must be a boolean.",
+          });
         }
 
         const result = await lessonsCollection.updateOne(
