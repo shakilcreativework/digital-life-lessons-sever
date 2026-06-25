@@ -59,7 +59,6 @@ async function run() {
     // GET Route: Fetch only lessons marked as featured for the homepage
     app.get("/api/lessons/featured", async (req, res) => {
       try {
-        // Query MongoDB for documents where isFeatured is explicitly true
         const featuredLessons = await lessonsCollection
           .find({ isFeatured: true })
           .toArray();
