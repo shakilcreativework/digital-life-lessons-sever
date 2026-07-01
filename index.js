@@ -14,8 +14,8 @@ const port = process.env.PORT || 5000;
 app.use(
   cors({
     origin: [
-        "http://localhost:3000", // For local development
-        // "https://digital-life-lessons-client-one.vercel.app" // YOUR ACTUAL DEPLOYED VERCEL URL
+      "http://localhost:3000", // For local development
+      // "https://digital-life-lessons-client-one.vercel.app" // YOUR ACTUAL DEPLOYED VERCEL URL
     ],
     methods: ["GET", "POST", "PUT", "DELETE", "PATCH"],
     credentials: true,
@@ -441,42 +441,43 @@ async function run() {
     });
 
     // subscription
-app.post('/api/subscriptions', async (req, res) => {
-  try {
-    const data = req.body;
-    const subsInfo = {
-      ...data,
-      createdAt: new Date()
-    };
+    app.post("/api/subscriptions", async (req, res) => {
+      try {
+        const data = req.body;
+        const subsInfo = {
+          ...data,
+          createdAt: new Date(),
+        };
 
-    // 1. Save the subscription record
-    const result = await subscriptionsCollection.insertOne(subsInfo);
+        // 1. Save the subscription record
+        const result = await subscriptionsCollection.insertOne(subsInfo);
 
-    // 2. Update the user plan information
-    const filter = { email: data.email };
-    const updateDoc = {
-      $set: {
-        isPremium: true // Changes the user to premium
-      },
-    };
+        // 2. Update the user plan information
+        const filter = { email: data.email };
+        const updateDoc = {
+          $set: {
+            isPremium: true, // Changes the user to premium
+          },
+        };
 
-    // Note: Make sure 'usersCollection' matches your actual MongoDB collection variable for users
-    const updateResult = await usersCollection.updateOne(filter, updateDoc);
+        // Note: Make sure 'usersCollection' matches your actual MongoDB collection variable for users
+        const updateResult = await usersCollection.updateOne(filter, updateDoc);
 
-    // 3. Send a success response back to the client
-    res.status(200).send({ 
-      success: true, 
-      message: "Subscription successful and user upgraded!",
-      subscriptionId: result.insertedId,
-      modifiedCount: updateResult.modifiedCount 
+        // 3. Send a success response back to the client
+        res.status(200).send({
+          success: true,
+          message: "Subscription successful and user upgraded!",
+          subscriptionId: result.insertedId,
+          modifiedCount: updateResult.modifiedCount,
+        });
+      } catch (error) {
+        // Always good practice to catch errors so your server doesn't crash
+        console.error("Error updating subscription:", error);
+        res
+          .status(500)
+          .send({ success: false, message: "Internal server error" });
+      }
     });
-
-  } catch (error) {
-    // Always good practice to catch errors so your server doesn't crash
-    console.error("Error updating subscription:", error);
-    res.status(500).send({ success: false, message: "Internal server error" });
-  }
-});
 
     // PUT /api/lessons/:id
     app.put("/api/lessons/:id", async (req, res) => {
