@@ -15,7 +15,7 @@ app.use(
   cors({
     origin: [
       "http://localhost:3000", // For local development
-      // "https://digital-life-lessons-client-one.vercel.app" // YOUR ACTUAL DEPLOYED VERCEL URL
+      "https://digital-life-lessons-client-one.vercel.app" // YOUR ACTUAL DEPLOYED VERCEL URL
     ],
     methods: ["GET", "POST", "PUT", "DELETE", "PATCH"],
     credentials: true,
