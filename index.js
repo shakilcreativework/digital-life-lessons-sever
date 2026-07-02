@@ -23,6 +23,25 @@ app.use(
 );
 app.use(express.json());
 
+// verify token and protected routes
+const protectRoute = async (req, res, next) => {
+  const authHeader = req.headers.authorization;
+  // console.log("1. Received Authorization Header:", authHeader);
+
+  if (!authHeader || !authHeader.startsWith("Bearer ")) {
+    console.log("❌ No valid token found");
+    return res.status(401).json({
+      success: false,
+      message: "Unauthorized: No token provided",
+    });
+  }
+
+  const token = authHeader.split(" ")[1];
+  console.log(token);
+
+  next();
+};
+
 // MongoDB connection
 const uri = process.env.MONGODB_URI;
 const client = new MongoClient(uri, {
@@ -314,8 +333,38 @@ async function run() {
       }
     });
 
+    // routes/stats.js
+    // Most Saved: Sort by bookmarkedByCount DESC, limit 6
+    app.get("/api/stats/most-saved", async (req, res) => {
+      const lessons = await lessonsCollection
+        .find({ visibility: "Public" })
+        .sort({ bookmarkedByCount: -1 })
+        .limit(6)
+        .toArray();
+      res.send(lessons);
+    });
+
+    // Top Contributors: Group by creatorId, count, sort DESC
+    app.get("/api/stats/top-contributors", async (req, res) => {
+      const contributors = await lessonsCollection
+        .aggregate([
+          {
+            $group: {
+              _id: "$creatorId",
+              count: { $sum: 1 },
+              name: { $first: "$authorName" },
+              img: { $first: "$authorImg" },
+            },
+          },
+          { $sort: { count: -1 } },
+          { $limit: 5 },
+        ])
+        .toArray();
+      res.send(contributors);
+    });
+
     // Create a new lesson document entry
-    app.post("/api/lessons", async (req, res) => {
+    app.post("/api/lessons", protectRoute, async (req, res) => {
       try {
         const newLesson = {
           ...req.body,
